@@ -194,11 +194,12 @@ void readParameters(int *npix, double *boxl,
 		    string *filsnaplist, string *pathsnap,
 		    string *idc, 
 		    int *seedcenter, int *seedface, int *seedsign,
-		    string *subfiles, string *simulation, int *nfiles, string *partinplanes){ 
+		    string *subfiles, string *simulation, int *nfiles, 
+		    string *partinplanes, int *noSNAP, double *bufferdeg){ 
 
   string butstr;
   ifstream inputf;
-  inputf.open("INPUT");
+  inputf.open("MapSim.ini");
   if(inputf.is_open()){
     inputf >> butstr; // number of pixels
     inputf >> *npix;
@@ -230,6 +231,10 @@ void readParameters(int *npix, double *boxl,
     inputf >> *seedsign;  
     inputf >> butstr; // which particles in the planes (ALL: one file for all, or NO: one for each)
     inputf >> *partinplanes;  
+    inputf >> butstr; // if 0 read also snaphosts if =/0 only subs and fof area read
+    inputf >> *noSNAP;  
+    inputf >> butstr; // size of the buffer region in degrees for subs and fof
+    inputf >> *bufferdeg;  
     inputf.close();
   }else{
     cout << " INPUT file does not exsit ... I will stop here!!! " << endl;
@@ -298,8 +303,6 @@ void readCone(string fname, double *boxl, double *buta, double *butb, double *zs
 }
 
 int main(){ 
-  // to set in the parameter file
-  int noSNAP=1;
   cout << "   ------------------------------------------------------ " << endl;
   cout << "   -                                                    - " << endl;
   cout << "   -           2D Mapping Simulation Snapshot           - " << endl;
@@ -324,12 +327,15 @@ int main(){
   string subfiles;
   string simulation; // Simulation Name  
   string partinplanes; // ALL all part in one plane, NO each part type in different planes
-
+  int noSNAP; 
+  double bufferdeg;
   readParameters(&npix,&boxl,&zs,&fov,
 		 &filredshiftlist,&filsnaplist,
 		 &pathsnap,&idc,&seedcenter,
 		 &seedface,&seedsign,
-		 &subfiles,&simulation,&nfiles,&partinplanes);
+		 &subfiles,&simulation,&nfiles,
+		 &partinplanes,
+		 &noSNAP,&bufferdeg);
 
   // check the existence of a file .cone (from Mauro Roncarelli for the randmization)
   int yes = system("ls -1 *.cone > cone.file");
@@ -727,16 +733,24 @@ int main(){
   std:: cout << "  " << endl;
   cout << "  " << endl;
   cout << " set the field of view to be square in degrees " << endl;
-  double h0,fovradiants;
+  double h0,fovradiants,bufferrad;
   double om0, omL0;
   fovradiants = fov/180.*M_PI;
+  bufferrad = bufferdeg/180.*M_PI;
+  // check of the field of view is too large with respect to the box size
   if(fovradiants*Ds>boxl){
     std:: cout << " field view too large ... I will STOP here!!! " << std:: endl;
+    std:: cout << " value set is = " << fov << std:: endl;
     std:: cout << " maximum value allowed " << boxl/Ds*180./M_PI << " in degrees " << std:: endl;
     exit(1);
   }
-  cout << "  " << endl;
-
+  // check if the fov + buffer region for subs and fof is too large than the field of view
+  if((fovradiants+2.*bufferrad)*Ds>boxl){
+    std:: cout << " field view + 2 x buffer region is too large ... I will STOP here!!! " << std:: endl;
+    std:: cout << " value set is = " << fov + 2*bufferdeg << std:: endl;
+    std:: cout << " maximum value allowed " << boxl/Ds*180./M_PI << " (fov+2 x buffer) in degrees " << std:: endl;
+    exit(1);
+  }
   // loop on snapshots ****************************************
   cout << " now loop on " << nsnaps << " snapshots " << endl;
   cout << "  " << endl;
@@ -862,6 +876,7 @@ int main(){
     // redshift and dl of the simulation
     double zsim, dlsim;
     if(noSNAP==0){
+      // 
     }else{
       nfiles=1;
     }
@@ -945,7 +960,6 @@ int main(){
 	m4 = data.massarr[4];
 	m5 = data.massarr[5];
       
-	
 	if(subfiles!="NO"){	
 	  // rescale fof and sub unit with respect to the new center and the boxsize
 	  for(int l=0;l<nfof;l++){
@@ -1166,7 +1180,7 @@ int main(){
 	    if(di>=blD[nsnap] && di<blD2[nsnap]){
 	      double rai,deci,dd;
 	      getPolar(xfof[l]-0.5,yfof[l]-0.5,zfof[l],&rai,&deci,&dd);
-	      if(fabs(rai)<=fovradiants*0.5 && fabs(deci)<=fovradiants*0.5){
+	      if(fabs(rai)<=(fovradiants*0.5+bufferrad) && fabs(deci)<=(fovradiants*0.5+bufferrad)){
 		idfof.push_back(l);
 		mfofsel.push_back(mfof[l]);
 		m200sel.push_back(m200[l]);
@@ -1178,13 +1192,13 @@ int main(){
 	      }
 	    }
 	  }
-	  cout << " number of fof in the field " << fofz.size() << endl;
+	  cout << " number of fof in the field (plus buffer) " << fofz.size() << endl;
 	  for(int l=0;l<nsub;l++){
 	    double di = sqrt(pow(xsub[l]-0.5,2)+pow(ysub[l]-0.5,2)+pow(zsub[l],2))*data.boxsize/1.e+3;
 	    if(di>=blD[nsnap] && di<blD2[nsnap]){
 	      double rai,deci,dd;
 	      getPolar(xsub[l]-0.5,ysub[l]-0.5,zsub[l],&rai,&deci,&dd);
-	      if(fabs(rai)<=fovradiants*0.5 && fabs(deci)<=fovradiants*0.5){	  
+	      if(fabs(rai)<=(fovradiants*0.5+bufferrad) && fabs(deci)<=(fovradiants*0.5+bufferrad)){	  
 		idsub.push_back(l);
 		idphfof.push_back(groupN[l]);
 		// idfirstsubsel.push_back(groupN[l]);
@@ -1200,7 +1214,7 @@ int main(){
 	      }
 	    }	  
 	  }
-	  cout << " number of subs in the field " << subz.size() << endl;      
+	  cout << " number of subs in the field (plus buffer) " << subz.size() << endl;      
 	}
       }
       if(noSNAP==0){

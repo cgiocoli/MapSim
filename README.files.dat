@@ -1,0 +1,6 @@
+#...fof files
+id_fof   M_fof   ra   dec   z   d_comoving[Mpc/h]   M_200   R_200
+
+#...sub files
+id_sub   id_fof(to which belog)   ra   dec   d_comoving[Mpc/h]   z   m_sub   vel_dip   v_max   r_halfmass   r_max 
+

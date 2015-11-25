@@ -1,5 +1,5 @@
 # executable name
-PROG = /home/cgiocoli/bin/MapSim.CoDECS_Cat
+PROG = /home/cgiocoli/bin/MapSim.CoDECS-2.0_swap
 
 MAIN = main.cpp readSUBFIND.cpp
 
@@ -23,7 +23,7 @@ ALLFLAGS = -I/home/cgiocoli/lib/gsl-1.13/include/gsl/ \
            -I/home/cgiocoli/lib/cfitsio/include/ \
            -I/home/cgiocoli/lib/CCfits/include/ \
            -I/home/cgiocoli/lib/fftw-3.2.2/include/ \
-           -I/home/cgiocoli/lib/readSUBFIND/ \
+           -I./ \
            -I$(NR_DIR)/include \
            -I$(COSMOLIB_DIR)/include \
 
